@@ -1,9 +1,8 @@
-// @dart=2.9
 import 'package:flutter/material.dart';
-import 'package:personal_expenses/user_transaction.dart';
 import './models/transaction.dart';
 import './transaction_list.dart';
 import 'new_transaction.dart';
+import './chart.dart';
 
 void main() => runApp(MyApp());
 
@@ -17,7 +16,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Personal Expenses',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -53,12 +52,22 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   ];
 
-  _addNewTransaction(String title, double amount) {
+  List<Transaction> get _recentTransactions {
+    return _userTransactions.where((ts) {
+      return ts.date.isAfter(
+        DateTime.now().subtract(
+          const Duration(days: 7),
+        ),
+      );
+    }).toList();
+  }
+
+  _addNewTransaction(String title, double amount, DateTime chosenDate) {
     final newTs = Transaction(
       id: DateTime.now().toString(),
       title: title,
       amount: amount,
-      date: DateTime.now(),
+      date: chosenDate,
     );
 
     setState(() {
@@ -71,11 +80,17 @@ class _MyHomePageState extends State<MyHomePage> {
         context: ctx,
         builder: (_) {
           return GestureDetector(
-            onTap: (){},
-            // behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            behavior: HitTestBehavior.opaque,
             child: NewTransaction(_addNewTransaction),
           );
         });
+  }
+
+  void _deleteTransaction(String id) {
+    setState(() {
+      _userTransactions.removeWhere((tx) => tx.id == id);
+    });
   }
 
   @override
@@ -93,25 +108,20 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
         child: Column(
-          // mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               width: double.infinity,
-              child: const Card(
-                color: Colors.blue,
-                elevation: 5,
-                child: Text('CHART'),
-              ),
+              child: Chart(_recentTransactions),
             ),
-            TransactionList(_userTransactions),
+            TransactionList(_userTransactions, _deleteTransaction),
           ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
-        onPressed: () {},
+        onPressed: () => _startNewTransaction(context),
       ),
     );
   }
